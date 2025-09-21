@@ -1,3 +1,6 @@
+// server.js
+// Express server for notes API
+
 import express from 'express';
 import cors from 'cors';
 import pino from 'pino-http';
