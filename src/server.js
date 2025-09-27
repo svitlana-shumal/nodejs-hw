@@ -21,7 +21,7 @@ app.use(
 app.use(cors());
 
 app.get('/', (req, res) => {
-  res.status(200).json({ mesage: 'Hello user' });
+  res.status(200).json({ message: 'Hello user' });
 });
 
 app.use(notesRoutes);
