@@ -1,35 +1,37 @@
-import { TAGS } from '../constants/tags.js';
 import { Note } from '../models/note.js';
 import createHttpError from 'http-errors';
 
-export const getAllNotes = async (req, res) => {
-  const { page = 1, perPage = 10, tag, search } = req.query;
-  const skip = (page - 1) * perPage;
-  const filter = { userId: req.user._id };
-  if (tag && TAGS.includes(tag)) {
-    filter.tag = tag;
+export const getAllNotes = async (req, res, next) => {
+  try {
+    const { page = 1, perPage = 10, tag, search } = req.query;
+    const skip = (page - 1) * perPage;
+    let query = Note.find();
+    if (tag) {
+      query = query.where('tag').equals(tag);
+    }
+    if (search) {
+      query = query.or([
+        {
+          title: { $regex: search, $options: 'i' },
+        },
+        { content: { $regex: search, $options: 'i' } },
+      ]);
+    }
+    const [totalNotes, notes] = await Promise.all([
+      query.clone().countDocuments(),
+      query.skip(skip).limit(perPage),
+    ]);
+    const totalPages = Math.ceil(totalNotes / perPage);
+    res.status(200).json({
+      page: Number(page),
+      perPage: Number(perPage),
+      totalNotes,
+      totalPages,
+      notes,
+    });
+  } catch (error) {
+    next(error);
   }
-  if (search) {
-    filter.$or = [
-      {
-        title: { $regex: search, $options: 'i' },
-      },
-      { content: { $regex: search, $options: 'i' } },
-    ];
-  }
-  const notesQuery = Note.find(filter);
-  const [totalItems, notes] = await Promise.all([
-    notesQuery.clone().countDocuments(),
-    notesQuery.skip(skip).limit(perPage),
-  ]);
-  const totalPages = Math.ceil(totalItems / perPage);
-  res.status(200).json({
-    page,
-    perPage,
-    totalItems,
-    totalPages,
-    notes,
-  });
 };
 
 export const getNoteById = async (req, res, next) => {
@@ -56,7 +58,7 @@ export const deleteNote = async (req, res, next) => {
     next(createHttpError(404, 'Note not found'));
     return;
   }
-  res.status(200).send(note);
+  res.status(200).json(note);
 };
 
 export const updateNote = async (req, res, next) => {
