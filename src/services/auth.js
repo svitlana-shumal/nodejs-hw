@@ -27,7 +27,7 @@ export const setSessionCookies = async (res, session) => {
     sameSite: 'none',
     maxAge: ONE_DAY,
   });
-  res.cookie('sessionId', session, {
+  res.cookie('sessionId', session._id.toString(), {
     httpOnly: true,
     secure: true,
     sameSite: 'none',

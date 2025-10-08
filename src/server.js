@@ -12,7 +12,7 @@ import notesRoutes from './routes/notesRoutes.js';
 import cookieParser from 'cookie-parser';
 
 const app = express();
-const PORT = process.env.PORT ?? 3030;
+const PORT = process.env.PORT ?? 3000;
 
 app.use(logger);
 app.use(
@@ -24,10 +24,6 @@ app.use(
 app.use(cors());
 
 app.use(cookieParser());
-
-app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Hello user' });
-});
 
 app.use(authRoutes);
 app.use(notesRoutes);

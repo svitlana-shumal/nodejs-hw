@@ -24,42 +24,47 @@ export const registerUser = async (req, res, next) => {
 };
 
 export const loginUser = async (req, res, next) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) {
-    return next(createHttpError(401, 'User not found'));
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(createHttpError(401, 'User not found'));
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return next(createHttpError(401, 'Invalid credentials'));
+    }
+    await Session.deleteMany({ userId: user._id });
+    const newSession = await createSession(user._id);
+    setSessionCookies(res, newSession);
+
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
   }
-
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    return next(createHttpError(401, 'Invalid credentials'));
-  }
-
-  await Session.deleteOne({ userId: user._id });
-
-  const newSession = await createSession(user._id);
-
-  setSessionCookies(res, newSession);
-
-  res.status(200).json(user);
 };
 
-export const logoutUser = async (req, res) => {
-  const { sessionId } = req.cookies;
-  if (sessionId) {
-    await Session.deleteOne({ _id: sessionId });
-  }
-  res.clearCookie('sessionId');
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
+export const logoutUser = async (req, res, next) => {
+  try {
+    const { sessionId } = req.cookies;
+    if (sessionId) {
+      await Session.deleteOne({ _id: sessionId });
+    }
+    res.clearCookie('sessionId');
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
 
-  res.status(204).send();
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const refreshUserSession = async (req, res, next) => {
   const session = await Session.findOne({
-    _id: req.cookie.sessionId,
-    refreshToken: req.cookie.refreshToken,
+    _id: req.cookies.sessionId,
+    refreshToken: req.cookies.refreshToken,
   });
 
   if (!session) {
